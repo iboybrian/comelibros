@@ -295,3 +295,10 @@ details summary { cursor: pointer; color: var(--brand); margin-top: 4px; }
 @keyframes swing { 0%, 100% { transform: translateX(0) rotate(0); } 25% { transform: translateX(-70px) rotate(-14deg); } 50% { transform: translateX(0); } 75% { transform: translateX(70px) rotate(14deg); } }
 @keyframes glow-l { 0%, 100%, 50% { opacity: .25; } 25% { opacity: 1; } }
 @keyframes glow-r { 0%, 100%, 50% { opacity: .25; } 75% { opacity: 1; } }
+
+/* portadas: brillo mientras cargan y fundido al llegar */
+.cover:has(img:not(.loaded)) { background: linear-gradient(100deg, var(--brand-soft) 30%, #fbf1e6 50%, var(--brand-soft) 70%); background-size: 200% 100%; animation: shimmer 1.4s linear infinite; }
+.cover img { opacity: 0; transition: opacity .35s; }
+.cover img.loaded { opacity: 1; }
+@keyframes shimmer { to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .cover:has(img:not(.loaded)) { animation: none; } }

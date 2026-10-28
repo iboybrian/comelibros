@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { sb, call, useAuth, photoUrl, uploadPhoto, BookCard, Avatar } from './lib.jsx'
+import { sb, call, useAuth, photoUrl, uploadPhoto, BookCard, Avatar, CoverImg } from './lib.jsx'
 import { OfferForm } from './Offers.jsx'
 import { CATEGORIES, FilterBar, useTastes } from './Tastes.jsx'
 
@@ -142,7 +142,7 @@ export function BookPage() {
   return (
     <div className="book-page">
       <div className="gallery">
-        <div className="cover big">{book.photos[photo] ? <img src={photoUrl(book.photos[photo])} alt="" /> : <span>📖</span>}</div>
+        <div className="cover big">{book.photos[photo] ? <CoverImg key={photo} src={photoUrl(book.photos[photo])} alt="" /> : <span>📖</span>}</div>
         {book.photos.length > 1 && (
           <div className="thumbs">
             {book.photos.map((p, i) => (
@@ -210,6 +210,9 @@ export function Discover() {
 
   const book = deck?.[0]
 
+  // las próximas 3 portadas se van bajando mientras miras la actual
+  useEffect(() => { deck?.slice(1, 4).forEach(b => { if (b.photos[0]) new Image().src = photoUrl(b.photos[0]) }) }, [deck])
+
   function next(liked) {
     const seen = loadSeen()
     seen.add(book.id)
@@ -264,7 +267,7 @@ export function Discover() {
         onPointerMove={e => { if (startX.current !== null) setDrag(e.clientX - startX.current) }}
         onPointerUp={() => { startX.current = null; Math.abs(drag) > 100 ? next(drag > 0) : setDrag(0) }}
       >
-        <div className="cover">{cover ? <img src={cover} alt="" draggable={false} /> : <span>📖</span>}</div>
+        <div className="cover">{cover ? <CoverImg key={book.id} src={cover} alt="" draggable={false} /> : <span>📖</span>}</div>
         <div className="stack swipe-body">
           <h2>{book.title}</h2>
           <span className="muted">{book.author}</span>

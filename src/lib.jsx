@@ -21,7 +21,17 @@ export async function call(query) {
   return data
 }
 
-export const photoUrl = path => (!path ? null : /^https?:\/\//.test(path) ? path : sb.storage.from('photos').getPublicUrl(path).data.publicUrl)
+// Fotos de Storage ya vienen achicadas (1280px). Las externas (libros importados) pesan ~4MB: pasan por wsrv.nl, que las sirve en WebP ~50KB y las cachea.
+// ponytail: dependencia de un proxy público; si estorba, descargar y subir las fotos a Storage con shrink().
+export const photoUrl = (path, w = 640) => !path ? null
+  : /^https?:\/\//.test(path) ? `https://wsrv.nl/?url=${encodeURIComponent(path)}&w=${w}&output=webp&q=75`
+  : sb.storage.from('photos').getPublicUrl(path).data.publicUrl
+
+// Portada que aparece con fundido al terminar de cargar (el .cover muestra un brillo mientras tanto).
+export function CoverImg({ src, ...rest }) {
+  const [ok, setOk] = useState(false)
+  return <img src={src} className={ok ? 'loaded' : ''} onLoad={() => setOk(true)} ref={el => { if (el?.complete) setOk(true) }} {...rest} />
+}
 export const quetzales = n => new Intl.NumberFormat('es-GT', { style: 'currency', currency: 'GTQ' }).format(n)
 
 export const DEPARTAMENTOS = ['Alta Verapaz', 'Baja Verapaz', 'Chimaltenango', 'Chiquimula', 'El Progreso', 'Escuintla',
@@ -83,7 +93,7 @@ export function BookCard({ book }) {
   const cover = photoUrl(book.photos?.[0])
   return (
     <Link to={`/libro/${book.id}`} className="book-card">
-      <div className="cover">{cover ? <img src={cover} alt="" loading="lazy" /> : <span>📖</span>}</div>
+      <div className="cover">{cover ? <CoverImg src={cover} alt="" loading="lazy" /> : <span>📖</span>}</div>
       <div className="book-card-body">
         <strong>{book.title}</strong>
         <span className="muted">{book.author}</span>
