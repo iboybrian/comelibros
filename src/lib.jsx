@@ -21,7 +21,7 @@ export async function call(query) {
   return data
 }
 
-export const photoUrl = path => (path ? sb.storage.from('photos').getPublicUrl(path).data.publicUrl : null)
+export const photoUrl = path => (!path ? null : /^https?:\/\//.test(path) ? path : sb.storage.from('photos').getPublicUrl(path).data.publicUrl)
 export const quetzales = n => new Intl.NumberFormat('es-GT', { style: 'currency', currency: 'GTQ' }).format(n)
 
 export const DEPARTAMENTOS = ['Alta Verapaz', 'Baja Verapaz', 'Chimaltenango', 'Chiquimula', 'El Progreso', 'Escuintla',
