@@ -178,6 +178,7 @@ export function BookPage() {
 
 // Modo descubrir: un libro a la vez, desliza → me interesa, ← paso. Los vistos se guardan en este navegador.
 const SEEN_KEY = 'comelibros:vistos'
+const TUTO_KEY = 'comelibros:tuto-swipe'
 function loadSeen() {
   try { return new Set(JSON.parse(localStorage.getItem(SEEN_KEY)) ?? []) } catch { return new Set() }
 }
@@ -192,6 +193,8 @@ export function Discover() {
   const city = profile?.city
   const { t: { cats }, clear } = useTastes()
   const catKey = cats.join()
+  const [tuto, setTuto] = useState(() => { try { return !localStorage.getItem(TUTO_KEY) } catch { return false } })
+  const closeTuto = () => { setTuto(false); try { localStorage.setItem(TUTO_KEY, '1') } catch { /* modo privado */ } }
 
   useEffect(() => {
     let q = sb.from('books').select('*, owner:profiles(name, city)').eq('available', true)
@@ -275,7 +278,25 @@ export function Discover() {
         <button className="btn round" onClick={() => next(false)} aria-label="Paso">✕</button>
         <button className="btn round primary" onClick={() => next(true)} aria-label="Me interesa">♥</button>
       </div>
-      <p className="small muted center">Desliza o usa las flechas ← →</p>
+      {tuto && <SwipeTutorial onClose={closeTuto} />}
+    </div>
+  )
+}
+
+function SwipeTutorial({ onClose }) {
+  return (
+    <div className="coach" role="dialog" aria-modal="true" aria-label="Cómo funciona">
+      <div className="coach-card">
+        <h2>Tú decides qué libros ver</h2>
+        <div className="coach-demo" aria-hidden="true">
+          <span className="coach-tag nope">✕ PASO</span>
+          <span className="coach-mini">📖</span>
+          <span className="coach-tag like">♥ ME INTERESA</span>
+        </div>
+        <p><strong>Desliza a la derecha</strong> (o toca ♥) si un libro te interesa: verás sus detalles y podrás hacer una oferta.</p>
+        <p><strong>Desliza a la izquierda</strong> (o toca ✕) para pasar al siguiente.</p>
+        <button className="btn primary" onClick={onClose}>¡Entendido!</button>
+      </div>
     </div>
   )
 }

@@ -4,16 +4,16 @@ import { sb, useAuth } from './lib.jsx'
 
 // Mismos ids que el check de books.category en supabase/003_categorias.sql
 export const CATEGORIES = [
-  { id: 'novela', emoji: '📖', label: 'Novela y narrativa', hue: 18 },
-  { id: 'misterio', emoji: '🕵️', label: 'Misterio y thriller', hue: 262 },
-  { id: 'juvenil', emoji: '🧙', label: 'Juvenil y fantasía', hue: 292 },
-  { id: 'clasicos', emoji: '🏛️', label: 'Clásicos', hue: 38 },
-  { id: 'psicologia', emoji: '🧠', label: 'Psicología y autoayuda', hue: 335 },
-  { id: 'negocios', emoji: '💼', label: 'Negocios', hue: 205 },
-  { id: 'historia', emoji: '🗺️', label: 'Historia y sociedad', hue: 140 },
-  { id: 'religion', emoji: '🙏', label: 'Religión y espiritualidad', hue: 52 },
-  { id: 'arte', emoji: '🎨', label: 'Arte y ciencia', hue: 175 },
-  { id: 'infantil', emoji: '🧸', label: 'Infantil', hue: 350 },
+  { id: 'novela', short: 'Novela', emoji: '📖', label: 'Novela y narrativa', hue: 18 },
+  { id: 'misterio', short: 'Misterio', emoji: '🕵️', label: 'Misterio y thriller', hue: 262 },
+  { id: 'juvenil', short: 'Juvenil', emoji: '🧙', label: 'Juvenil y fantasía', hue: 292 },
+  { id: 'clasicos', short: 'Clásicos', emoji: '🏛️', label: 'Clásicos', hue: 38 },
+  { id: 'psicologia', short: 'Psicología', emoji: '🧠', label: 'Psicología y autoayuda', hue: 335 },
+  { id: 'negocios', short: 'Negocios', emoji: '💼', label: 'Negocios', hue: 205 },
+  { id: 'historia', short: 'Historia', emoji: '🗺️', label: 'Historia y sociedad', hue: 140 },
+  { id: 'religion', short: 'Religión', emoji: '🙏', label: 'Religión y espiritualidad', hue: 52 },
+  { id: 'arte', short: 'Arte y ciencia', emoji: '🎨', label: 'Arte y ciencia', hue: 175 },
+  { id: 'infantil', short: 'Infantil', emoji: '🧸', label: 'Infantil', hue: 350 },
 ]
 
 // ---------- Gustos: localStorage (visitante) + profiles.interests (con sesión) ----------
@@ -68,12 +68,18 @@ export function TastePicker() {
   const nav = useNavigate()
   const [sel, setSel] = useState(() => new Set(t.cats))
   const [boom, setBoom] = useState(false)
+  const [step, setStep] = useState('welcome') // welcome | genres (editar gustos salta directo a genres)
 
   // esperamos a conocer la cuenta para no mostrar el menú a quien ya eligió en otro dispositivo
   const ready = session !== undefined && (!session || !!profile)
   const first = !t.done
   const open = picking || (first && ready && pathname === '/')
-  useEffect(() => { if (open) setSel(new Set(t.cats)) }, [open])
+  useEffect(() => { if (open) { setSel(new Set(t.cats)); setStep(first ? 'welcome' : 'genres') } }, [open])
+  useEffect(() => {
+    if (!open) return
+    document.documentElement.style.overflow = 'hidden'
+    return () => { document.documentElement.style.overflow = '' }
+  }, [open])
   if (!open) return null
 
   const toggle = id => setSel(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
@@ -86,31 +92,44 @@ export function TastePicker() {
       if (first) nav('/descubrir')
     }, 800)
   }
-  const close = () => { if (first) commit([]); setPicking(false) }
 
   return (
-    <div className="taste" role="dialog" aria-modal="true" aria-label="Elige tus gustos">
+    <div className="taste" role="dialog" aria-modal="true" aria-label="Bienvenida">
       <div className="taste-blob a" /><div className="taste-blob b" />
-      {!first && <button className="taste-x" onClick={close} aria-label="Cerrar">✕</button>}
-      <h1 className="taste-title">¿Qué te gusta leer?</h1>
-      <p className="taste-sub">Toca los que quieras. Te mostramos esos libros primero.</p>
-      <div className="bubbles">
-        {CATEGORIES.map((c, i) => (
-          <button key={c.id} type="button" className={`bubble${sel.has(c.id) ? ' on' : ''}`} aria-pressed={sel.has(c.id)}
-            style={{ '--h': c.hue, '--i': i, '--s': `${104 + (i % 3) * 16}px`, '--f': `${3.2 + (i % 4) * 0.7}s` }}
-            onClick={() => toggle(c.id)}>
-            <span className="bubble-in">
-              <span className="b-emoji">{c.emoji}</span>
-              <span className="b-label">{c.label}</span>
-              <span className="b-check">✓</span>
-            </span>
+      {!first && <button className="taste-x" onClick={() => setPicking(false)} aria-label="Cerrar">✕</button>}
+      {step === 'welcome' ? (
+        <div className="taste-step welcome" key="w">
+          <div className="welcome-logo">📚</div>
+          <h1 className="taste-title">Bienvenido a Comelibros</h1>
+          <p className="taste-sub">El marketplace para encontrar a otros amantes de la lectura, intercambiar libros y dar con tu libro ideal.</p>
+          <ul className="welcome-list">
+            <li><span>📖</span> Publica los libros que ya leíste</li>
+            <li><span>🔄</span> Ofrece un cambio, dinero o ambos</li>
+            <li><span>📍</span> Acuerda un punto de encuentro seguro y cercano</li>
+          </ul>
+          <button className="btn primary taste-go" onClick={() => setStep('genres')}>Empezar</button>
+        </div>
+      ) : (
+        <div className="taste-step genres" key="g">
+          <h1 className="taste-title">¿Qué te gusta leer?</h1>
+          <p className="taste-sub">Toca uno o varios. Te mostramos esos libros primero.</p>
+          <div className="bubbles">
+            {CATEGORIES.map((c, i) => (
+              <button key={c.id} type="button" className={`gb${sel.has(c.id) ? ' on' : ''}`} aria-pressed={sel.has(c.id)}
+                style={{ '--h': c.hue, '--i': i, '--f': `${3.2 + (i % 4) * 0.7}s` }} onClick={() => toggle(c.id)}>
+                <span className="gb-in">
+                  <span className="b-emoji">{c.emoji}</span>
+                  <span className="b-label">{c.short}</span>
+                  <span className="b-check">✓</span>
+                </span>
+              </button>
+            ))}
+          </div>
+          <button className="btn primary taste-go" disabled={!sel.size || boom} onClick={go}>
+            {sel.size ? `¡Vamos! (${sel.size})` : 'Elige al menos una'}
           </button>
-        ))}
-      </div>
-      <button className="btn primary taste-go" disabled={!sel.size || boom} onClick={go}>
-        {sel.size ? `¡Vamos! (${sel.size})` : 'Elige al menos una'}
-      </button>
-      <button className="link taste-skip" onClick={close}>{first ? 'Ver todo sin filtrar' : 'Cancelar'}</button>
+        </div>
+      )}
       {boom && <Confetti />}
     </div>
   )
