@@ -1,15 +1,26 @@
-import { useState } from 'react'
-import { Navigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Navigate, useSearchParams } from 'react-router-dom'
 import { sb, call, useAuth } from './lib.jsx'
+
+export const NEXT_KEY = 'comelibros:next'
 
 export function Login() {
   const { session } = useAuth()
+  const next = useSearchParams()[0].get('next')
   const [mode, setMode] = useState('login') // login | signup | magic
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
   const [msg, setMsg] = useState('')
   const [busy, setBusy] = useState(false)
+
+  // guardamos a dónde volver (sobrevive al enlace mágico, que abre otra pestaña); solo rutas internas
+  useEffect(() => {
+    try {
+      if (next?.startsWith('/') && !next.startsWith('//')) localStorage.setItem(NEXT_KEY, next)
+      else localStorage.removeItem(NEXT_KEY)
+    } catch { /* modo privado */ }
+  }, [next])
 
   if (session) return <Navigate to="/" replace />
 

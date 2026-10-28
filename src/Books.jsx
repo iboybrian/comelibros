@@ -2,22 +2,26 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { sb, call, useAuth, photoUrl, uploadPhoto, BookCard, Avatar } from './lib.jsx'
 import { OfferForm } from './Offers.jsx'
+import { CATEGORIES, FilterBar, useTastes } from './Tastes.jsx'
 
 export function Explore() {
   const { uid } = useAuth()
+  const { t: { cats }, clear } = useTastes()
   const [q, setQ] = useState('')
   const [books, setBooks] = useState(null)
+  const catKey = cats.join()
 
   useEffect(() => {
     const t = setTimeout(async () => {
       let query = sb.from('books').select('*, owner:profiles(name, city)')
         .eq('available', true).order('created_at', { ascending: false }).limit(60)
+      if (cats.length) query = query.in('category', cats)
       const term = q.replace(/[,()%*\\]/g, ' ').trim() // caracteres especiales del filtro de PostgREST
       if (term) query = query.or(`title.ilike.%${term}%,author.ilike.%${term}%`)
       setBooks(await call(query))
     }, 250)
     return () => clearTimeout(t)
-  }, [q])
+  }, [q, catKey])
 
   return (
     <>
@@ -25,9 +29,15 @@ export function Explore() {
         <input className="search grow" placeholder="Buscar por título o autor…" value={q} onChange={e => setQ(e.target.value)} />
         <Link className="btn" to="/descubrir">✨ Descubrir</Link>
       </div>
-      {uid && !q && <ForYou />}
+      <FilterBar />
+      {uid && !q && !cats.length && <ForYou />}
       {books === null ? <p className="muted">Cargando…</p>
-        : books.length === 0 ? <p className="muted">No hay libros{q && ' con esa búsqueda'}. <Link to="/publicar">Publica el primero</Link>.</p>
+        : books.length === 0 ? (
+          <p className="muted">
+            No hay libros{q && ' con esa búsqueda'}{cats.length > 0 && ' de ese tipo'}.{' '}
+            {cats.length > 0 ? <button className="link" onClick={clear}>Quitar filtro</button> : <Link to="/publicar">Publica el primero</Link>}
+          </p>
+        )
         : <div className="grid">{books.map(b => <BookCard key={b.id} book={b} />)}</div>}
     </>
   )
@@ -152,7 +162,7 @@ export function BookPage() {
 
         {mine && !book.available && <p className="tip">Para que siga su viaje, edítalo y márcalo como disponible.</p>}
         {mine ? <Link className="btn" to={`/libro/${id}/editar`}>Editar libro</Link>
-          : !uid ? <Link className="btn primary" to="/login">Entra para hacer una oferta</Link>
+          : !uid ? <Link className="btn primary" to={`/login?next=${encodeURIComponent(`/libro/${id}`)}`}>Entra para hacer una oferta</Link>
           : myOffer ? <Link className="btn primary" to={`/oferta/${myOffer.id}`}>Ver mi oferta</Link>
           : book.available && (
             <div className="card">
@@ -180,17 +190,20 @@ export function Discover() {
   const [drag, setDrag] = useState(0)
   const startX = useRef(null)
   const city = profile?.city
+  const { t: { cats }, clear } = useTastes()
+  const catKey = cats.join()
 
   useEffect(() => {
     let q = sb.from('books').select('*, owner:profiles(name, city)').eq('available', true)
       .order('created_at', { ascending: false }).limit(100)
+    if (cats.length) q = q.in('category', cats)
     if (uid) q = q.neq('owner_id', uid)
     q.then(({ data }) => {
       const seen = loadSeen()
       // primero los de mi departamento
       setDeck((data ?? []).filter(b => !seen.has(b.id)).sort((a, b) => (b.owner.city === city) - (a.owner.city === city)))
     })
-  }, [uid, city, round])
+  }, [uid, city, round, catKey])
 
   const book = deck?.[0]
 
@@ -213,20 +226,34 @@ export function Discover() {
     return () => removeEventListener('keydown', onKey)
   })
 
-  if (deck === null) return <p className="muted">Cargando…</p>
+  const top = (
+    <>
+      <div className="row between">
+        <Link className="btn small" to="/">✕ Salir al listado</Link>
+      </div>
+      <FilterBar />
+    </>
+  )
+
+  if (deck === null) return <>{top}<p className="muted">Cargando…</p></>
   if (!book) return (
     <div className="stack discover">
+      {top}
       <h1>¡Viste todo! 📚</h1>
-      <p className="muted">No hay más libros nuevos por ahora.</p>
-      <button className="btn" onClick={() => { try { localStorage.removeItem(SEEN_KEY) } catch { /* nada */ } setDeck(null); setRound(round + 1) }}>
-        Volver a empezar
-      </button>
+      <p className="muted">No hay más libros{cats.length > 0 && ' de este tipo'} por ahora.</p>
+      <div className="row center">
+        {cats.length > 0 && <button className="btn primary" onClick={clear}>Quitar filtro</button>}
+        <button className="btn" onClick={() => { try { localStorage.removeItem(SEEN_KEY) } catch { /* nada */ } setDeck(null); setRound(round + 1) }}>
+          Volver a empezar
+        </button>
+      </div>
     </div>
   )
 
   const cover = photoUrl(book.photos[0])
   return (
     <div className="stack discover">
+      {top}
       <div
         className="card swipe"
         style={{ transform: `translateX(${drag}px) rotate(${drag / 20}deg)`, transition: startX.current === null ? 'transform .2s' : 'none' }}
@@ -253,7 +280,7 @@ export function Discover() {
   )
 }
 
-const EMPTY = { title: '', author: '', description: '', photos: [], available: true }
+const EMPTY = { title: '', author: '', description: '', photos: [], available: true, category: '' }
 
 export function BookForm() {
   const { id } = useParams()
@@ -288,6 +315,7 @@ export function BookForm() {
   async function save(e) {
     e.preventDefault()
     const row = { title: b.title.trim(), author: b.author.trim(), description: b.description.trim(), photos: b.photos, available: b.available }
+    if (b.category) row.category = b.category // vacío = el servidor la adivina al publicar
     const saved = await call(id
       ? sb.from('books').update(row).eq('id', id).select().single()
       : sb.from('books').insert(row).select().single())
@@ -305,6 +333,12 @@ export function BookForm() {
       <h1>{id ? 'Editar libro' : 'Publicar un libro'}</h1>
       <label>Título<input value={b.title} onChange={set('title')} required maxLength={200} /></label>
       <label>Autor<input value={b.author} onChange={set('author')} required maxLength={200} /></label>
+      <label>Tipo de libro
+        <select value={b.category} onChange={set('category')}>
+          {!id && <option value="">Automático (según título y autor)</option>}
+          {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.label}</option>)}
+        </select>
+      </label>
       <label>Breve descripción
         <textarea rows={4} value={b.description} onChange={set('description')} maxLength={2000}
           placeholder="Estado, edición, qué te pareció…" />

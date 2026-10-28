@@ -1,8 +1,9 @@
-import { StrictMode } from 'react'
+import { StrictMode, useEffect } from 'react'
 import { createRoot } from 'react-dom/client'
-import { BrowserRouter, Routes, Route, NavLink, Link, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, NavLink, Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { AuthProvider, useAuth, sb, configured } from './lib.jsx'
-import { Login } from './Auth.jsx'
+import { Login, NEXT_KEY } from './Auth.jsx'
+import { TasteProvider, TastePicker } from './Tastes.jsx'
 import { Explore, BookPage, BookForm, Discover } from './Books.jsx'
 import { PublicProfile, EditProfile } from './Profile.jsx'
 import { OffersList, OfferPage } from './Offers.jsx'
@@ -11,14 +12,27 @@ import './styles.css'
 
 function Private({ children }) {
   const { session } = useAuth()
+  const { pathname, search } = useLocation()
   if (session === undefined) return null
-  return session ? children : <Navigate to="/login" replace />
+  return session ? children : <Navigate to={`/login?next=${encodeURIComponent(pathname + search)}`} replace />
 }
 
 function Layout() {
   const { session, uid, profile } = useAuth()
+  const nav = useNavigate()
+
+  // Tras iniciar sesión (también por enlace mágico) volvemos a donde estaba: ej. el libro que quería ofertar.
+  useEffect(() => {
+    if (!session) return
+    try {
+      const next = localStorage.getItem(NEXT_KEY)
+      if (next) { localStorage.removeItem(NEXT_KEY); nav(next, { replace: true }) }
+    } catch { /* modo privado */ }
+  }, [session])
+
   return (
     <>
+      <TastePicker />
       <header className="topbar">
         <Link to="/" className="logo">📚 Comelibros</Link>
         {session
@@ -64,7 +78,9 @@ createRoot(document.getElementById('root')).render(
   ) : <StrictMode>
     <BrowserRouter>
       <AuthProvider>
-        <Layout />
+        <TasteProvider>
+          <Layout />
+        </TasteProvider>
       </AuthProvider>
     </BrowserRouter>
   </StrictMode>,

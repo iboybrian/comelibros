@@ -52,11 +52,11 @@ img { display: block; max-width: 100%; }
 .tabbar a.active { color: var(--brand); font-weight: 600; }
 
 /* controles */
-input, textarea {
+input, textarea, select {
   width: 100%; font: inherit; color: inherit; background: #fff;
   border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px;
 }
-input:focus, textarea:focus { outline: 2px solid var(--brand); outline-offset: -1px; border-color: transparent; }
+input:focus, textarea:focus, select:focus { outline: 2px solid var(--brand); outline-offset: -1px; border-color: transparent; }
 input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--brand); flex: none; }
 label, .label { display: grid; gap: 4px; font-size: .9rem; font-weight: 600; }
 label.row { display: flex; font-weight: 400; }
@@ -171,3 +171,81 @@ details summary { cursor: pointer; color: var(--brand); margin-top: 4px; }
 .stamp.nope { right: 18px; color: var(--danger); transform: rotate(12deg); }
 .round { width: 64px; height: 64px; padding: 0; font-size: 1.6rem; }
 .center { justify-content: center; text-align: center; }
+
+/* ---------- filtro por tipo de libro ---------- */
+.row.between { justify-content: space-between; }
+.filterbar { display: flex; gap: 8px; overflow-x: auto; padding: 2px 0 12px; margin-bottom: 4px; scroll-snap-type: x proximity; scrollbar-width: none; }
+.filterbar::-webkit-scrollbar { display: none; }
+.fchip {
+  flex: none; scroll-snap-align: start; font: inherit; font-size: .88rem; cursor: pointer; white-space: nowrap;
+  padding: 7px 13px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); color: var(--ink);
+  transition: transform .15s, background .2s, border-color .2s, box-shadow .2s;
+}
+.fchip:hover { transform: translateY(-1px); }
+.fchip:active { transform: scale(.94); }
+.fchip.on { background: hsl(var(--h, 20) 70% 92%); border-color: hsl(var(--h, 20) 55% 55%); font-weight: 600; box-shadow: 0 2px 8px hsl(var(--h, 20) 60% 50% / .25); }
+.fchip.on:not([style]) { background: var(--brand); border-color: var(--brand); color: #fff; }
+.fchip.edit { border-style: dashed; color: var(--brand); }
+
+/* ---------- menú de gustos: burbujas flotantes ---------- */
+.taste {
+  position: fixed; inset: 0; z-index: 2000; overflow-y: auto; color: #fff;
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+  padding: 44px 16px calc(32px + env(safe-area-inset-bottom)); text-align: center;
+  background: radial-gradient(120% 90% at 50% 0%, #4a2a6e 0%, #2a1740 45%, #170d26 100%);
+  animation: taste-in .4s ease both;
+}
+.taste-blob { position: fixed; border-radius: 50%; filter: blur(70px); opacity: .45; pointer-events: none; animation: blob 14s ease-in-out infinite alternate; }
+.taste-blob.a { width: 320px; height: 320px; background: #ff7a45; top: -80px; left: -90px; }
+.taste-blob.b { width: 380px; height: 380px; background: #3ad0c2; bottom: -120px; right: -100px; animation-delay: -6s; }
+.taste-title { margin: 8px 0 0; font-size: clamp(1.7rem, 6vw, 2.6rem); position: relative; animation: rise .6s both; }
+.taste-sub { margin: 0; opacity: .8; position: relative; animation: rise .6s .1s both; }
+.taste-x { position: absolute; top: 14px; right: 14px; border: 0; background: rgba(255, 255, 255, .15); color: #fff; width: 38px; height: 38px; border-radius: 50%; font-size: 1rem; cursor: pointer; }
+.bubbles { position: relative; display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; max-width: 640px; padding: 14px 0; }
+.bubble {
+  --s: 108px; width: var(--s); height: var(--s); padding: 0; border: 0; background: none; cursor: pointer; font: inherit; color: inherit;
+  animation: rise .6s calc(.15s + var(--i) * 70ms) both, float var(--f, 4s) calc(var(--i) * -.5s) ease-in-out infinite alternate;
+  -webkit-tap-highlight-color: transparent;
+}
+.bubble-in {
+  position: relative; width: 100%; height: 100%; display: grid; place-content: center; gap: 2px; padding: 8px; border-radius: 50%;
+  background: radial-gradient(circle at 30% 25%, hsl(var(--h) 90% 75% / .55), hsl(var(--h) 70% 45% / .25) 70%);
+  border: 1.5px solid hsl(var(--h) 90% 80% / .45); backdrop-filter: blur(4px);
+  box-shadow: inset 0 0 18px hsl(var(--h) 90% 80% / .25), 0 6px 20px hsl(var(--h) 80% 30% / .35);
+  transition: transform .25s cubic-bezier(.3, 1.6, .5, 1), box-shadow .25s, background .25s;
+}
+.bubble:hover .bubble-in { transform: scale(1.08); }
+.bubble:active .bubble-in { transform: scale(.9); }
+.bubble.on .bubble-in {
+  background: radial-gradient(circle at 30% 25%, hsl(var(--h) 95% 82%), hsl(var(--h) 80% 55%) 75%); border-color: #fff;
+  box-shadow: 0 0 0 4px hsl(var(--h) 90% 70% / .35), 0 0 34px hsl(var(--h) 95% 65% / .75);
+  animation: pop .45s cubic-bezier(.3, 1.6, .5, 1);
+}
+.b-emoji { font-size: 2rem; line-height: 1; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .3)); }
+.b-label { font-size: .72rem; line-height: 1.15; font-weight: 600; text-shadow: 0 1px 3px rgba(0, 0, 0, .45); }
+.b-check {
+  position: absolute; top: 2px; right: 2px; width: 26px; height: 26px; border-radius: 50%; background: #fff; color: #2a1740;
+  display: grid; place-items: center; font-weight: 800; font-size: .85rem; transform: scale(0); transition: transform .3s cubic-bezier(.3, 1.8, .5, 1);
+}
+.bubble.on .b-check { transform: scale(1); }
+.taste-go { position: relative; font-size: 1.05rem; padding: 14px 34px; margin-top: 6px; box-shadow: 0 8px 24px rgba(255, 122, 69, .45); animation: rise .6s .9s both; }
+.taste-go:not(:disabled) { animation: rise .6s .9s both, pulse 1.8s 1.5s ease-in-out infinite; }
+.taste-go:disabled { opacity: .55; box-shadow: none; }
+.taste-skip { position: relative; color: #fff; opacity: .75; justify-self: center; }
+
+.confetti { position: fixed; left: 50%; bottom: 90px; z-index: 2100; pointer-events: none; }
+.confetti i {
+  position: absolute; width: var(--w); height: calc(var(--w) * 1.6); border-radius: 2px; background: hsl(var(--h) 90% 60%);
+  animation: confetti .85s cubic-bezier(.2, .8, .3, 1) forwards;
+}
+
+@keyframes taste-in { from { opacity: 0; } }
+@keyframes rise { from { opacity: 0; transform: translateY(24px) scale(.85); } }
+@keyframes float { from { translate: 0 -7px; } to { translate: 0 7px; } }
+@keyframes pop { 0% { transform: scale(.85); } 55% { transform: scale(1.18); } 100% { transform: scale(1); } }
+@keyframes pulse { 50% { transform: scale(1.05); } }
+@keyframes blob { to { transform: translate(60px, 50px) scale(1.2); } }
+@keyframes confetti { 0% { transform: translate(0, 0) rotate(0); opacity: 1; } 100% { transform: translate(var(--x), var(--y)) rotate(var(--r)); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .taste, .taste *, .bubble { animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+}

@@ -103,3 +103,17 @@ await q(`delete from books where id=$1`, [X.id])
 await as(B); ok((await q(`select book_id, book_title from offers where id=$1`, [O]))[0].book_title === 'Rayuela', 'borrar libro conserva oferta registrada')
 await q(`insert into storage.objects (bucket_id, name) values ('photos', $1)`, [`${B}/f.jpg`]); ok(true, 'sube foto a su carpeta')
 await fails(() => q(`insert into storage.objects (bucket_id, name) values ('photos', $1)`, [`${A}/f.jpg`]), 'no sube a carpeta ajena')
+
+// ---- 003: categorías y gustos ----
+const cat = async (t, a = '') => (await q(`select private.guess_category($1, $2, '') c`, [t, a]))[0].c
+ok(await cat('Harry Potter y la cámara secreta', 'J.K. Rowling') === 'juvenil', 'Harry Potter -> juvenil')
+ok(await cat('Los 7 hábitos de la gente altamente efectiva', 'Covey') === 'negocios', 'Covey -> negocios')
+ok(await cat('Fausto', 'Goethe') === 'clasicos', 'Fausto -> clásicos')
+ok(await cat('Tiempos recios', 'Vargas Llosa') === 'novela', 'sin regla -> novela')
+await as(B); const [{ category: bc }] = await q(`insert into books (title, author) values ('El don de la terapia','Yalom') returning category`)
+ok(bc === 'psicologia', 'trigger clasifica al insertar sin categoría')
+const [{ category: bc2 }] = await q(`insert into books (title, author, category) values ('Algo','X','arte') returning category`)
+ok(bc2 === 'arte', 'respeta categoría explícita')
+await fails(() => q(`insert into books (title, author, category) values ('Algo','X','inventada')`), 'categoría inválida rechazada')
+await q(`update profiles set interests = '{misterio,arte}' where id = $1`, [B]); ok(true, 'usuario guarda sus gustos')
+await fails(() => q(`update profiles set interests = '{a,b,c,d,e,f,g,h,i,j,k}' where id = $1`, [B]), 'máx 10 gustos')
