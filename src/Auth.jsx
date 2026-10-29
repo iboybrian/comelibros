@@ -33,7 +33,11 @@ export function Login() {
       if (mode === 'login') await call(sb.auth.signInWithPassword({ email, password }))
       if (mode === 'signup') {
         const data = await call(sb.auth.signUp({ email, password, options: { ...redirect, data: { name } } }))
-        if (!data.session) setMsg('Listo. Revisa tu correo para confirmar la cuenta.')
+        // correo ya registrado: Supabase responde 200 sin identities y no manda nada
+        if (data.user?.identities?.length === 0) {
+          setMode('login')
+          setMsg('Ya tienes cuenta con ese correo. Entra con tu contraseña o usa el enlace mágico.')
+        } else if (!data.session) setMsg('Listo. Revisa tu correo para confirmar la cuenta.')
       }
       if (mode === 'magic') {
         await call(sb.auth.signInWithOtp({ email, options: redirect }))
